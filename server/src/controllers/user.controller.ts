@@ -1,12 +1,15 @@
 import { Request, Response } from "express";
 import { UserResponse } from "../models/userResponse.model";
-import { User, UserFields } from "../models/user.model"
+import { User } from "../models/user.model"
 import { Paging } from "../models/paging.model"
 import logger from "../config/logging"
 const userService = require("../services/user.service");
 
 const getUsers = (req: Request, res: Response) => {
     try {
+
+        const fullURL = new URL(req.protocol + '://' + req.get('host') + req.originalUrl);
+        logger.info("Request: " + fullURL.toString());
 
         const page = parseInt((req.query.page ?? 1) as string, 10);
         const size = parseInt((req.query.size ?? 10) as string, 10);
@@ -21,6 +24,7 @@ const getUsers = (req: Request, res: Response) => {
             return res.status(400).json({ message: 'Invalid order' });
         }
 
+        logger.info(fullURL.toString() + " Fetching data");
         let response: UserResponse = {} as UserResponse;
         response.data = userService.getUsers(size, page, req.query.sort, req.query.order);
 
@@ -28,6 +32,7 @@ const getUsers = (req: Request, res: Response) => {
             return res.status(404).json({ message: 'No data found' });
         }
 
+        logger.info(fullURL.toString() + " Adding metadata");
         let pagingData: Paging = {} as Paging;
         pagingData.page = page;
         pagingData.size = size;
@@ -42,7 +47,7 @@ const getUsers = (req: Request, res: Response) => {
             if (req.query.page) {
                 pagingData.next = req.originalUrl.replace('page=' + page, 'page=' + (page + 1));
             } else {
-                const nextURL = new URL(req.protocol + '://' + req.get('host') + req.originalUrl);
+                let nextURL = fullURL;
                 nextURL.searchParams.set('page', '2');
                 pagingData.next = nextURL.pathname + nextURL.search + nextURL.hash;
             }         
@@ -50,6 +55,7 @@ const getUsers = (req: Request, res: Response) => {
 
         response.paging = pagingData;
 
+        logger.info("Response: " + response);
         res.status(200).json(response);
 
     } catch (error) {
@@ -60,7 +66,7 @@ const getUsers = (req: Request, res: Response) => {
 
 const getUser = (req: Request, res: Response) => {
     try {
-
+        
         res.status(200).json(userService.getUser(req.params.id));
 
     } catch (error) {
