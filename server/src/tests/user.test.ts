@@ -20,6 +20,22 @@ describe('Get Users', () => {
     );    
   });
 
+  it('Paging should go back and forth', async () => {
+    const originalUri = '/api/users?page=2';
+    const res = await request(app).get(originalUri);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.paging).toHaveProperty("next");
+    expect(res.body.paging).toHaveProperty("previous");
+
+    const res2 = await request(app).get(res.body.paging.next);
+    expect(res2.statusCode).toBe(200);    
+    expect(res2.body.paging.previous).toBe(originalUri);
+
+    const res3 = await request(app).get(res.body.paging.previous);
+    expect(res3.statusCode).toBe(200);    
+    expect(res3.body.paging.next).toBe(originalUri);
+  });
+
   it('Paging should not have next', async () => {
     const res = await request(app).get('/api/users?page=1&size=100');
     expect(res.statusCode).toBe(200);
